@@ -15,7 +15,9 @@ def parser(type = None, name = None):
 
 @parser
 def parseLidl(img, labels, ret):
-	pass
+	for i in xrange(ret):
+		subImg = getSubImageByLabel(img2, labels, i)
+		print(imageToText(subImg))
 
 @parser
 def parseKarstadt(img, labels, ret):

@@ -7,6 +7,7 @@ from os.path import join
 
 import numpy as np
 import cv2
+import pytesseract
 
 from paths import data_path
 
@@ -58,6 +59,9 @@ def displayImage(img, label='Img', debug=False):
     cv2.imshow(label, img)
     if not debug:
         cv2.waitKey(0)
+
+def imageToText(subImg, padding = 20):
+    return pytesseract.image_to_string(padImage(subImg, padding))
 
 
 

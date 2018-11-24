@@ -3,7 +3,7 @@
 @author: Alina Dima
 """
 
-import os
+import os, sys
 import ipdb
 
 import numpy as np
@@ -12,6 +12,7 @@ import scipy, scipy.signal
 import pytesseract
 
 from utils import *
+import stores
 
 
 def fill_corners(img, padding=5l):
@@ -37,10 +38,12 @@ def fill_corners(img, padding=5l):
 
     marked_labels = np.unique(labels*markers)
 
+    # displayImage(coloredConnComps(img, labels, ret))
+
     img_out = np.copy(img)
     for label in marked_labels:
         if label != 0:
-            img_out[labels==label] = 1
+            img_out[labels==label] = 255
 
     return img_out
 
@@ -69,12 +72,6 @@ def getConnComps(img):
     ret, labels = cv2.connectedComponents(invert(img3))
 
     return img3, labels, ret
-
-def hackyGetLogo(filename):
-    img = loadImage(filename)
-    img2 = preprocessImg(img)
-    img3, labels, ret = getConnComps(img2)
-    return getSubImageByLabel(img2, labels, 1)
 
 # Uses the original image plus the result of connectedComponents
 def coloredConnComps(img, labels, ret):
@@ -113,6 +110,9 @@ def compImgs(img1, img2):
     
     return 1.0*intersect / union
 
+
+# --- Stores ---
+
 def addToDict(D, logo):
     showarray(logo)
     name = raw_input("Enter the name of the Store: ")
@@ -121,14 +121,62 @@ def addToDict(D, logo):
     return name
 
 def detectStore(D, logoSubImg, threshold = 0.5):
+    if logoSubImg.shape[0] > 200:
+        return "<invalid>"
+    showarray(logoSubImg)
     for k,v in D.items():
         print k, compImgs(logoSubImg, v)
         if compImgs(logoSubImg, v) > threshold:
             return k
 
-    return addToDict(D, logoSubImg)
+    # return addToDict(D, logoSubImg)
+    return "<unknown>"
 
-def main():
+
+
+
+def hackyGetLogo(filename):
+    img = loadImage(filename)
+    img2 = preprocessImg(img)
+    img3, labels, ret = getConnComps(img2)
+    return getSubImageByLabel(img2, labels, 1)
+
+def fullStack(filename, D):
+    img = loadImage(filename)
+    img2 = preprocessImg(img)
+    img3, labels, ret = getConnComps(img2)
+
+    logo = hackyGetLogo(filename)
+    store = detectStore(D, logo)
+    if store == "Lidl":
+        data = stores.parseLidl(img2, labels, ret)
+    elif store == "Karstadt":
+        data = stores.parseKarstadt(img2, labels, ret)
+    else:
+        return "", None
+
+def goThroughFilesToCheckLogo(D):
+    for f in os.listdir(data_path):
+        if not os.path.isfile(os.path.join(data_path, f)):
+            continue
+        logo = hackyGetLogo(f)
+        print ""
+        print f
+        print imageToText(logo)
+        print detectStore(D, logo)
+
+def test1():
+    print detectStore(D, hackyGetLogo("lidl/2017-01-20 - Lidl.png"))
+    print detectStore(D, hackyGetLogo("2017-06-13 - Lidl.png"))
+    print detectStore(D, hackyGetLogo("2017-06-17 - Lidl.png"))
+    print detectStore(D, hackyGetLogo("2017-05-23 - Karstadt b.png"))
+    print detectStore(D, hackyGetLogo("2017-05-23 - Karstadt c.png"))
+    print detectStore(D, hackyGetLogo("2017-06-24 - Karstadt - Pants.png"))
+
+
+
+
+def ex1():
     markTime()
     img = loadImage('lidl/2017-01-20 - Lidl.png')
     markTime()
@@ -143,13 +191,17 @@ def main():
     subImg = getSubImageByLabel(img2, labels, 2)
     print(pytesseract.image_to_string(padImage(subImg, 20)))
 
+def main():
+    D = readStoreLogos()
+    fullStack(sys.argv[1])
+
 def debug_alina():
-    # img = loadImage('2017-01-20 - Lidl.png')
-    img = loadImage('2017-05-11 - Primark.png')
+    img = loadImage('lidl/2017-01-20 - Lidl.png')
+    # img = loadImage('2017-05-11 - Primark.png')
 
     img2 = preprocessImg(img)
     displayImage(img2)
 
 if __name__ == "__main__":
-    debug_alina()
-    # main()
+    # debug_alina()
+    main()

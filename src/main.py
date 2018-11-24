@@ -84,8 +84,4 @@ if __name__ == "__main__":
     # cv2.imshow('hue', coloredConnComps(img2, labels, ret))
 
     subImg = getSubImageByLabel(img2, labels, 2)
-    # cv2.imshow('2stcomp', subImg)
-
-    pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe"
-    # cv2.imshow('blasjd',padImage(subImg, 20))
     print(pytesseract.image_to_string(padImage(subImg, 20)))

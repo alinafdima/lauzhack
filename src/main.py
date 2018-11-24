@@ -22,7 +22,8 @@ if __name__ == "__main__":
     img2 = cv2.morphologyEx(img2, cv2.MORPH_OPEN, kernel)
     # img2 = cv2.morphologyEx(img, cv2.MORPH_CLOSE, kernel)
 
-    cv2.imshow('dst',img2)
+    cv2.imshow('Original',img)
+    cv2.imshow('Processed',img2)
     # cv2.imwrite(filename + ".jpg", img)
     if cv2.waitKey(0) & 0xff == 27:
         cv2.destroyAllWindows()

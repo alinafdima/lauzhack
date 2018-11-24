@@ -42,6 +42,11 @@ def loadImage(filename):
 def writeImage(filename, img):
     return cv2.imwrite(join(data_path, filename), img)
 
+def displayImage(img, label='Img', debug=False):
+    cv2.imshow(label, img)
+    if not debug:
+        cv2.waitKey(0)
+
 try:
     from cStringIO import StringIO
     def showarray(a, fmt='png'):

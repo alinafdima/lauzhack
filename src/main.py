@@ -13,44 +13,51 @@ import pytesseract
 
 from utils import *
 
-def fill_corners(img):
-    (size_y, size_x) = img.shape
-    # ipdb.set_trace()
-    # corners = np.array([0, 0, 0, size_x-1, size_y-1, 0, size_y-1, size_x-1]).reshape((4,2))
-    padding = 5
+
+def fill_corners(img, padding=5l):
+    img2 = invert(img)
+
+    kernel = np.ones((3,3), np.uint8)
+    img2 = cv2.morphologyEx(img2, cv2.MORPH_CLOSE, kernel, iterations=5)
+
+    ret, labels = cv2.connectedComponents(img2)
 
     markers = np.zeros(img.shape)
 
-    tri_ur= 1*np.tril(np.ones((padding, padding))).transpose()
-    tri_ll= 2*np.tril(np.ones((padding, padding)))
-    tri_ul= 3*np.fliplr(np.tril(np.ones((padding, padding))).transpose())
-    tri_lr= 4*np.fliplr(np.tril(np.ones((padding, padding))))
+    tri_ur= np.tril(np.ones((padding, padding))).transpose()
+    tri_ll= np.tril(np.ones((padding, padding)))
+    tri_ul= np.fliplr(np.tril(np.ones((padding, padding))).transpose())
+    tri_lr= np.fliplr(np.tril(np.ones((padding, padding))))
 
     markers[:padding,:padding] = tri_ul
     markers[:padding,-padding:] = tri_ur
     markers[-padding:,:padding] = tri_ll
     markers[-padding:,-padding:] = tri_lr
+    markers = (1-img/255)*markers
 
-    ipdb.set_trace()
+    marked_labels = np.unique(labels*markers)
 
-    img_3ch = cv2.cvtColor(np.uint8(img), cv2.COLOR_GRAY2BGR)
-    markers = cv2.cvtColor(np.uint8(markers), cv2.COLOR_GRAY2BGR)
+    img_out = np.copy(img)
+    for label in marked_labels:
+        if label != 0:
+            img_out[labels==label] = 1
 
-    img2 = cv2.watershed(img_3ch, markers)
+    return img_out
+
 
 def preprocessImg(img, type = 2):
     kernel  = np.ones((3,3),np.uint8)
     kernel[0,2] = kernel[2,2] = kernel[0,0] = kernel[2,0] = 0
     img2 = img.copy()
 
-    # CHANGE!!!!
-    img2 = img2[25:-25, 4:-25]
-
     if type == 1:
         img2 = cv2.morphologyEx(img2, cv2.MORPH_CLOSE, kernel)
         img2 = cv2.morphologyEx(img2, cv2.MORPH_OPEN, kernel)
     elif type == 2:
         img2 = scipy.signal.medfilt(img2, 3)
+
+    img2 = fill_corners(img2)
+    
     return img2
 
 def getConnComps(img):
@@ -131,9 +138,11 @@ def main():
     print(pytesseract.image_to_string(padImage(subImg, 20)))
 
 def debug_alina():
-    img = loadImage('2017-01-20 - Lidl.png')
+    # img = loadImage('2017-01-20 - Lidl.png')
+    img = loadImage('2017-05-11 - Primark.png')
+
     img2 = preprocessImg(img)
-    img2 = fill_corners(img2)
+    displayImage(img2)
 
 if __name__ == "__main__":
     debug_alina()

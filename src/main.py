@@ -63,12 +63,14 @@ def preprocessImg(img, type = 2):
     
     return img2
 
-def getConnComps(img):
+def getConnComps(img, iterationsErode=50):
     kernel3 = np.array([[0]*3, [1,1,1], [0]*3], np.uint8)
+    kernel3t = kernel3.copy().transpose()
     img3 = img
 
-    img3 = cv2.erode(img3, kernel3, iterations=50)
-    img3 = cv2.morphologyEx(img3, cv2.MORPH_CLOSE, kernel3.transpose(), iterations=5)
+    img3 = cv2.erode(img3, kernel3, iterations=iterationsErode)
+    img3 = cv2.morphologyEx(img3, cv2.MORPH_CLOSE, kernel3t, iterations=5)
+    # img3 = cv2.dilate(img3, kernel3, iterations=iterationsErode-10)
     ret, labels = cv2.connectedComponents(invert(img3))
 
     return img3, labels, ret
@@ -132,14 +134,55 @@ def detectStore(D, logoSubImg, threshold = 0.5):
     # return addToDict(D, logoSubImg)
     return "<unknown>"
 
+def stripWhiteColumns(img, pos):
+    x,y,w,h = pos
 
+    x1 = 0
+    for i in xrange(img.shape[1]):
+        if sum(255-img[:, i])/255.0 > 1:
+            x1 = i+1
+            break
 
+    x2 = img.shape[1]
+    for i in xrange(img.shape[1]-1, x1, -1):
+        if sum(255-img[:, i])/255.0 > 1:
+            x2 = i
+            break
+
+    img = img[:, x1:x2]
+    x = x+x1
+    w = x2-x1
+
+    return img, (x, y, w, h)
+
+def listFields(img, labels, ret, threshLines = 10):
+    L=[0] * (ret-1)
+
+    for i in xrange(1,ret):
+        L[i-1] = getSubImageByLabel(img, labels, i)
+        L[i-1] = stripWhiteColumns(L[i-1][0], L[i-1][1])
+
+    L = list(l for l in L if l[1][2] > 30)
+
+    for i in xrange(len(L)):
+        for j in xrange(i+1,len(L)):
+            if L[j][1][1] < L[i][1][1] + threshLines:
+                if L[i][1][0] > L[j][1][0]:
+                    L[i], L[j] = L[j], L[i]
+            else:
+                break
+
+    # for i in xrange(1,ret):
+    #     showarray(L[i][0])
+    #     print L[i][1]
+    return L
 
 def hackyGetLogo(filename):
     img = loadImage(filename)
     img2 = preprocessImg(img)
     img3, labels, ret = getConnComps(img2)
-    return getSubImageByLabel(img2, labels, 1)
+    logo, _ = getSubImageByLabel(img2, labels, 1)
+    return logo
 
 def fullStack(filename, D):
     img = loadImage(filename)
@@ -148,10 +191,11 @@ def fullStack(filename, D):
 
     logo = hackyGetLogo(filename)
     store = detectStore(D, logo)
+    F = listFields(img2, labels, ret)
     if store == "Lidl":
-        data = stores.parseLidl(img2, labels, ret)
+        data = stores.parseLidl(img2, F, labels, ret)
     elif store == "Karstadt":
-        data = stores.parseKarstadt(img2, labels, ret)
+        data = stores.parseKarstadt(img2, F, labels, ret)
     else:
         return "", None
 
@@ -185,15 +229,16 @@ def ex1():
     img3, labels, ret = getConnComps(img2)
     markTime()
 
-    cv2.imwrite('output-1stcomp.png', getSubImageByLabel(img2, labels, 1))
+    logo, _ = getSubImageByLabel(img2, labels, 1)
+    cv2.imwrite('output-1stcomp.png', )
     cv2.imwrite('output-hue.png', coloredConnComps(img2, labels, ret))
 
-    subImg = getSubImageByLabel(img2, labels, 2)
+    subImg,_ = getSubImageByLabel(img2, labels, 2)
     print(pytesseract.image_to_string(padImage(subImg, 20)))
 
 def main():
     D = readStoreLogos()
-    fullStack(sys.argv[1])
+    fullStack(sys.argv[1], D)
 
 def debug_alina():
     img = loadImage('lidl/2017-01-20 - Lidl.png')

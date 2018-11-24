@@ -50,7 +50,7 @@ def getSubImageByLabel(img, labels, val):
     return img[y:y+h, x:x+w]
 
 # Uses the original image plus the result of connectedComponents
-def coloredConnComps(img, ret, labels):
+def coloredConnComps(img, labels, ret):
     # Map component labels to hue val
     label_hue = np.uint8(170*labels/np.max(labels))
     blank_ch = 255*np.ones_like(label_hue)
@@ -63,7 +63,7 @@ def coloredConnComps(img, ret, labels):
     labeled_img[label_hue==0] = 0
 
     # Apply to original image
-    img4 = cv2.cvtColor(np.uint8(img2), cv2.COLOR_GRAY2BGR)
+    img4 = cv2.cvtColor(np.uint8(img), cv2.COLOR_GRAY2BGR)
     img4 = cv2.bitwise_or(img4, labeled_img)
     return img4
 
@@ -73,4 +73,5 @@ if __name__ == "__main__":
     img3, labels, ret = getConnComps(img2)
 
     cv2.imshow('1stcomp', getSubImageByLabel(img2, labels, 1))
+    cv2.imshow('hue', coloredConnComps(img2, labels, ret))
     cv2.waitKey()

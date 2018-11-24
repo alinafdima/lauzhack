@@ -14,6 +14,8 @@ import pytesseract
 from utils import *
 import stores
 
+from receipt_object import Receipt
+
 
 def fill_corners(img, padding=5l):
     img2 = invert(img)
@@ -63,17 +65,30 @@ def preprocessImg(img, type = 2):
     
     return img2
 
-def getConnComps(img, iterationsErode=50):
-    kernel3 = np.array([[0]*3, [1,1,1], [0]*3], np.uint8)
-    kernel3t = kernel3.copy().transpose()
-    img3 = img
+# def getConnComps(img, iterationsErode=50):
+#     kernel3 = np.array([[0]*3, [1,1,1], [0]*3], np.uint8)
+#     kernel3t = kernel3.copy().transpose()
+#     img3 = img
 
-    img3 = cv2.erode(img3, kernel3, iterations=iterationsErode)
-    img3 = cv2.morphologyEx(img3, cv2.MORPH_CLOSE, kernel3t, iterations=5)
-    # img3 = cv2.dilate(img3, kernel3, iterations=iterationsErode-10)
-    ret, labels = cv2.connectedComponents(invert(img3))
+#     img3 = cv2.erode(img3, kernel3, iterations=iterationsErode)
+#     img3 = cv2.morphologyEx(img3, cv2.MORPH_CLOSE, kernel3t, iterations=5)
+#     # img3 = cv2.dilate(img3, kernel3, iterations=iterationsErode-10)
+#     ret, labels = cv2.connectedComponents(invert(img3))
 
-    return img3, labels, ret
+#     return img3, labels, ret
+
+def compute_connected_components(receipt, iterationsErode=50):
+    kernel = np.array([[0]*3, [1,1,1], [0]*3], np.uint8)
+    kernel_t = kernel.copy().transpose()
+    img = receipt.img.copy()
+
+    img = cv2.erode(img, kernel, iterations=iterationsErode)
+    img = cv2.morphologyEx(img, cv2.MORPH_CLOSE, kernel_t, iterations=5)
+    ret, labels = cv2.connectedComponents(invert(img))
+
+    receipt.conn_comp_labels = labels
+    receipt.conn_comp_num = ret
+
 
 # Uses the original image plus the result of connectedComponents
 def coloredConnComps(img, labels, ret):
@@ -155,7 +170,8 @@ def stripWhiteColumns(img, pos):
 
     return img, (x, y, w, h)
 
-def listFields(img, labels, ret, threshLines = 10):
+def compute_image_patches(receipt, threshLines = 10):
+    img, labels, ret = receipt.img, receipt.conn_comp_labels, receipt.conn_comp_num
     L=[0] * (ret-1)
 
     for i in xrange(1,ret):
@@ -172,9 +188,6 @@ def listFields(img, labels, ret, threshLines = 10):
             else:
                 break
 
-    # for i in xrange(1,ret):
-    #     showarray(L[i][0])
-    #     print L[i][1]
     return L
 
 def hackyGetLogo(filename):
@@ -184,18 +197,18 @@ def hackyGetLogo(filename):
     logo, _ = getSubImageByLabel(img2, labels, 1)
     return logo
 
-def fullStack(filename, D):
-    img = loadImage(filename)
-    img2 = preprocessImg(img)
-    img3, labels, ret = getConnComps(img2)
+def fullStack(receipt, D):
+    raw_img = loadImage(receipt.filename)
+    receipt.img = preprocessImg(raw_img)
+    compute_connected_components(receipt)
 
-    logo = hackyGetLogo(filename)
-    store = detectStore(D, logo)
-    F = listFields(img2, labels, ret)
+    receipt.logo, _ = getSubImageByLabel(receipt.img, receipt.conn_comp_labels, 1)
+    store = detectStore(D, receipt.logo)
+    receipt.patches = compute_image_patches(receipt)
     if store == "Lidl":
-        data = stores.parseLidl(img2, F, labels, ret)
+        stores.parseLidl(receipt)
     elif store == "Karstadt":
-        data = stores.parseKarstadt(img2, F, labels, ret)
+        stores.parseKarstadt(receipt)
     else:
         return "", None
 
@@ -238,7 +251,8 @@ def ex1():
 
 def main():
     D = readStoreLogos()
-    fullStack(sys.argv[1], D)
+    receipt = Receipt(sys.argv[1])
+    fullStack(receipt, D)
 
 def debug_alina():
     img = loadImage('lidl/2017-01-20 - Lidl.png')

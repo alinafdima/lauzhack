@@ -15,11 +15,10 @@ def parser(type = None, name = None):
         return _parser(type)
 
 @parser
-def parseLidl(img, F, labels, ret):
-    D = {}
-
+def parseLidl(receipt):
+    img, F, labels, ret = receipt.img, receipt.patches, receipt.conn_comp_labels, receipt.conn_comp_num
+    
     i = 2
-    D["items"] = []
     while i < ret:
         subImg, pos = F[i]
         text = imageToText(subImg)
@@ -80,17 +79,18 @@ def parseLidl(img, F, labels, ret):
                     item["qty"], item["unitprice"] = item["qty"].split(" ", 1)
 
         # showarray(subImg)
-        print item
+        # print item
 
         i+=1
         if levenshtein(item["title"], "zu zahlen") > 0.9:
-            D["total"] = item["price"]
+            receipt.total = item["price"]
             break
         
-        D["items"].append(item)
+        receipt.items.append(item)
 
 
 
 @parser
-def parseKarstadt(img, F, labels, ret):
+def parseKarstadt(receipt):
+    img, F, labels, ret = receipt.img, receipt.patches, receipt.conn_comp_labels, receipt.conn_comp_num
     pass

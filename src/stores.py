@@ -20,10 +20,16 @@ def parser(type = None, name = None):
 
 def parse_date(receipt):
     regex_pattern = re.compile('[0-9]{1,2}[\\./,\\-][0-9]{1,2}[\\./,\\-][0-9]{2,4}')
-    for (patch, bbox, text) in receipt.patches:
-        m = regex_pattern.search(text)
+
+    m = regex_pattern.search(receipt.img_text)
+    if m:
+        receipt.date = m.group(0)
+        return
+
+    for patch in receipt.patches:
+        m = regex_pattern.search(patch.getText())
         if m:
-            print m.group(0), text
+            # print m.group(0), patch.getText()
             receipt.date = m.group(0)
             return
 
@@ -35,8 +41,8 @@ def parseLidl(receipt):
     
     i = 2
     while i < ret:
-        subImg, pos, text = F[i]
-        # text = imageToText(subImg)
+        subImg, pos = F[i].img, F[i].bbox
+        text = F[i].getText()
 
         # print "text", text
         if not text:
@@ -51,14 +57,10 @@ def parseLidl(receipt):
 
         item = {}
 
-        subImgNext, posNext, _ = F[i+1]
+        subImgNext, posNext = F[i+1].img, F[i+1].bbox
         if posNext[1] < pos[1]+10:
             i += 1
-            textNext = imageToText(subImgNext)
-            # if pos[0] > posNext[0]:
-            #     subImg, subImgNext = subImgNext, subImg
-            #     text, textNext = textNext, text
-            #     pos, posNext = posNext, pos
+            textNext = F[i+1].getText()
 
             item["title"] = text
             item["price"] = textNext
@@ -74,21 +76,18 @@ def parseLidl(receipt):
             if len(A) > 2:
                 item["vat"] = A[2]
 
-        subImg3, pos3, _ = F[i+1]
-        subImg4, pos4, _ = F[i+2]
-        # if pos3[0] > pos4[0]:
-        #     subImg3, subImg4 = subImg4, subImg3
-        #     pos3, pos4 = pos4, pos3
+        subImg3, pos3 = F[i+1].img, F[i+1].bbox
+        subImg4, pos4 = F[i+2].img, F[i+2].bbox
 
         if pos3[0] > pos[0] + 20:
             i += 1
             if pos4[1] < pos3[1]+10:
                 i+= 1
 
-                item["qty"] = imageToText(subImg3)
-                item["unitprice"] = imageToText(subImg4)
+                item["qty"] = F[i+1].getText()
+                item["unitprice"] = F[i+2].getText()
             else:
-                item["qty"] = imageToText(subImg3)
+                item["qty"] = F[i+1].getText()
                 item["unitprice"] = ""
                 if " " in item["qty"]:
                     item["qty"], item["unitprice"] = item["qty"].split(" ", 1)

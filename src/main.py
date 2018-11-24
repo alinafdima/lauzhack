@@ -65,17 +65,6 @@ def preprocessImg(img, type = 2):
     
     return img2
 
-# def getConnComps(img, iterationsErode=50):
-#     kernel3 = np.array([[0]*3, [1,1,1], [0]*3], np.uint8)
-#     kernel3t = kernel3.copy().transpose()
-#     img3 = img
-
-#     img3 = cv2.erode(img3, kernel3, iterations=iterationsErode)
-#     img3 = cv2.morphologyEx(img3, cv2.MORPH_CLOSE, kernel3t, iterations=5)
-#     # img3 = cv2.dilate(img3, kernel3, iterations=iterationsErode-10)
-#     ret, labels = cv2.connectedComponents(invert(img3))
-
-#     return img3, labels, ret
 
 def compute_connected_components(receipt, iterationsErode=50):
     kernel = np.array([[0]*3, [1,1,1], [0]*3], np.uint8)
@@ -149,8 +138,21 @@ def detectStore(D, logoSubImg, threshold = 0.5):
     # return addToDict(D, logoSubImg)
     return "<unknown>"
 
-def stripWhiteColumns(img, pos):
-    x,y,w,h = pos
+class ImagePatch:
+    def __init__(self):
+        self.img = None
+        self.bbox  = None
+        self.text  = None
+
+    def getText(self):
+        if self.text is None:
+            self.text = imageToText(self.img)
+        return self.text
+
+
+def stripWhiteColumns(patch):
+    x,y,w,h = patch.bbox
+    img = patch.img
 
     x1 = 0
     for i in xrange(img.shape[1]):
@@ -164,27 +166,24 @@ def stripWhiteColumns(img, pos):
             x2 = i
             break
 
-    img = img[:, x1:x2]
-    x = x+x1
-    w = x2-x1
-
-    return img, (x, y, w, h)
+    patch.img = img[:, x1:x2]
+    patch.bbox = (x+x1, y, x2-x1, h)
 
 def compute_image_patches(receipt, threshLines = 10):
     img, labels, ret = receipt.img, receipt.conn_comp_labels, receipt.conn_comp_num
     L=[0] * (ret-1)
 
     for i in xrange(1,ret):
-        L[i-1] = getSubImageByLabel(img, labels, i)
-        L[i-1] = stripWhiteColumns(L[i-1][0], L[i-1][1])
-        L[i-1] = (L[i-1][0], L[i-1][1], imageToText(L[i-1][0]))
+        L[i-1] = ImagePatch()
+        L[i-1].img, L[i-1].bbox = getSubImageByLabel(img, labels, i)
+        stripWhiteColumns(L[i-1])
 
-    L = list(l for l in L if l[1][2] > 30)
+    L = list(l for l in L if l.bbox[2] > 30)
 
     for i in xrange(len(L)):
         for j in xrange(i+1,len(L)):
-            if L[j][1][1] < L[i][1][1] + threshLines:
-                if L[i][1][0] > L[j][1][0]:
+            if L[j].bbox[1] < L[i].bbox[1] + threshLines:
+                if L[i].bbox[0] > L[j].bbox[0]:
                     L[i], L[j] = L[j], L[i]
             else:
                 break
@@ -201,10 +200,11 @@ def hackyGetLogo(filename):
 def fullStack(receipt, D):
     raw_img = loadImage(receipt.filename)
     receipt.img = preprocessImg(raw_img)
+    receipt.img_text = imageToText(receipt.img)
     compute_connected_components(receipt)
 
     receipt.logo, _ = getSubImageByLabel(receipt.img, receipt.conn_comp_labels, 1)
-    store = detectStore(D, receipt.logo)
+    receipt.store = detectStore(D, receipt.logo)
 
     receipt.patches = compute_image_patches(receipt)
     # if store == "Lidl":
@@ -256,12 +256,22 @@ def main():
     fullStack(receipt, D)
 
 def main_alina():
-    markTime()
     img_file = 'lidl/2017-01-20 - Lidl.png'
+    if len(sys.argv) > 1:
+        img_file = sys.argv[1]
+
+
+    markTime()
     receipt = Receipt(img_file)
     D = readStoreLogos()
     fullStack(receipt, D)
     stores.parse_date(receipt)
+    markTime()
+
+    print "\n--- Receipt ---"
+    print "Store:", receipt.store
+    print "Date: ", receipt.date
+    print "Paid: ", receipt.total
 
 
 if __name__ == "__main__":

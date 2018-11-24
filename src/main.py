@@ -10,6 +10,7 @@ from os.path import join
 import numpy as np
 import cv2
 import scipy, scipy.signal
+import pytesseract
 
 from paths import data_path
 from utils import *
@@ -49,6 +50,13 @@ def getSubImageByLabel(img, labels, val):
     x, y, w, h = getRange(labels, val)
     return img[y:y+h, x:x+w]
 
+def padImage(img, padding=10):
+    m,n = img.shape
+    img2 = np.zeros((m+2*padding,n+2*padding))
+    img2 = invert(img2)
+    img2[padding:m+padding, padding:n+padding] = img
+    return img2
+
 # Uses the original image plus the result of connectedComponents
 def coloredConnComps(img, labels, ret):
     # Map component labels to hue val
@@ -72,6 +80,12 @@ if __name__ == "__main__":
     img2 = preprocessImg(img)
     img3, labels, ret = getConnComps(img2)
 
-    cv2.imshow('1stcomp', getSubImageByLabel(img2, labels, 1))
-    cv2.imshow('hue', coloredConnComps(img2, labels, ret))
-    cv2.waitKey()
+    # cv2.imshow('1stcomp', getSubImageByLabel(img2, labels, 1))
+    # cv2.imshow('hue', coloredConnComps(img2, labels, ret))
+
+    subImg = getSubImageByLabel(img2, labels, 2)
+    # cv2.imshow('2stcomp', subImg)
+
+    pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe"
+    # cv2.imshow('blasjd',padImage(subImg, 20))
+    print(pytesseract.image_to_string(padImage(subImg, 20)))

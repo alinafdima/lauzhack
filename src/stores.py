@@ -1,4 +1,7 @@
 from utils import *
+import re
+import ipdb
+
 
 Classes = {}
 def parser(type = None, name = None):
@@ -14,14 +17,26 @@ def parser(type = None, name = None):
     else:
         return _parser(type)
 
+
+def parse_date(receipt):
+    regex_pattern = re.compile('[0-9]{1,2}[\\./,\\-][0-9]{1,2}[\\./,\\-][0-9]{2,4}')
+    for (patch, bbox, text) in receipt.patches:
+        m = regex_pattern.search(text)
+        if m:
+            print m.group(0), text
+            receipt.date = m.group(0)
+            return
+
+
+
 @parser
 def parseLidl(receipt):
     img, F, labels, ret = receipt.img, receipt.patches, receipt.conn_comp_labels, receipt.conn_comp_num
     
     i = 2
     while i < ret:
-        subImg, pos = F[i]
-        text = imageToText(subImg)
+        subImg, pos, text = F[i]
+        # text = imageToText(subImg)
 
         # print "text", text
         if not text:
@@ -36,7 +51,7 @@ def parseLidl(receipt):
 
         item = {}
 
-        subImgNext, posNext = F[i+1]
+        subImgNext, posNext, _ = F[i+1]
         if posNext[1] < pos[1]+10:
             i += 1
             textNext = imageToText(subImgNext)
@@ -59,8 +74,8 @@ def parseLidl(receipt):
             if len(A) > 2:
                 item["vat"] = A[2]
 
-        subImg3, pos3 = F[i+1]
-        subImg4, pos4 = F[i+2]
+        subImg3, pos3, _ = F[i+1]
+        subImg4, pos4, _ = F[i+2]
         # if pos3[0] > pos4[0]:
         #     subImg3, subImg4 = subImg4, subImg3
         #     pos3, pos4 = pos4, pos3

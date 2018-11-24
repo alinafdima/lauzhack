@@ -177,6 +177,7 @@ def compute_image_patches(receipt, threshLines = 10):
     for i in xrange(1,ret):
         L[i-1] = getSubImageByLabel(img, labels, i)
         L[i-1] = stripWhiteColumns(L[i-1][0], L[i-1][1])
+        L[i-1] = (L[i-1][0], L[i-1][1], imageToText(L[i-1][0]))
 
     L = list(l for l in L if l[1][2] > 30)
 
@@ -204,13 +205,13 @@ def fullStack(receipt, D):
 
     receipt.logo, _ = getSubImageByLabel(receipt.img, receipt.conn_comp_labels, 1)
     store = detectStore(D, receipt.logo)
+
     receipt.patches = compute_image_patches(receipt)
-    if store == "Lidl":
-        stores.parseLidl(receipt)
-    elif store == "Karstadt":
-        stores.parseKarstadt(receipt)
-    else:
-        return "", None
+    # if store == "Lidl":
+    #     stores.parseLidl(receipt)
+    # elif store == "Karstadt":
+    #     stores.parseKarstadt(receipt)
+
 
 def goThroughFilesToCheckLogo(D):
     for f in os.listdir(data_path):
@@ -254,13 +255,15 @@ def main():
     receipt = Receipt(sys.argv[1])
     fullStack(receipt, D)
 
-def debug_alina():
-    img = loadImage('lidl/2017-01-20 - Lidl.png')
-    # img = loadImage('2017-05-11 - Primark.png')
+def main_alina():
+    markTime()
+    img_file = 'lidl/2017-01-20 - Lidl.png'
+    receipt = Receipt(img_file)
+    D = readStoreLogos()
+    fullStack(receipt, D)
+    stores.parse_date(receipt)
 
-    img2 = preprocessImg(img)
-    displayImage(img2)
 
 if __name__ == "__main__":
-    # debug_alina()
-    main()
+    main_alina()
+    # main()

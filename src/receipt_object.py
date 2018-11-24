@@ -7,6 +7,7 @@ class Receipt:
         # Data fields
         self.items = []
         self.total = None
+        self.date = None
 
         self.img = None
 

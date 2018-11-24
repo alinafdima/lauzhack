@@ -16,4 +16,4 @@ def get_machine():
 if get_machine() == 'alina':
     data_path = '/Users/alina/Documents/code/lauzhack/data/input'
 elif get_machine() == 'daniel':
-    data_path = '../../local-data/receipts'
+    data_path = r'C:\Users\Daniel\Dropbox\Eu & Alina\lauzhack'

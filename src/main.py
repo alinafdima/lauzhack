@@ -5,18 +5,13 @@
 
 import os
 import ipdb
-from os.path import join
 
 import numpy as np
 import cv2
 import scipy, scipy.signal
 import pytesseract
 
-from paths import data_path
 from utils import *
-
-def loadImage(filename):
-    return cv2.imread(join(data_path, filename), cv2.IMREAD_GRAYSCALE)
 
 def fill_corners(img):
     (size_y, size_x) = img.shape
@@ -43,7 +38,6 @@ def fill_corners(img):
 
     img2 = cv2.watershed(img_3ch, markers)
 
-
 def preprocessImg(img, type = 2):
     kernel  = np.ones((3,3),np.uint8)
     kernel[0,2] = kernel[2,2] = kernel[0,0] = kernel[2,0] = 0
@@ -69,19 +63,11 @@ def getConnComps(img):
 
     return img3, labels, ret
 
-def getRange(labels, val):
-    return cv2.boundingRect(np.uint8(labels==val))
-
-def getSubImageByLabel(img, labels, val):
-    x, y, w, h = getRange(labels, val)
-    return img[y:y+h, x:x+w]
-
-def padImage(img, padding=10):
-    m,n = img.shape
-    img2 = np.zeros((m+2*padding,n+2*padding))
-    img2 = invert(img2)
-    img2[padding:m+padding, padding:n+padding] = img
-    return img2
+def hackyGetLogo(filename):
+    img = loadImage(filename)
+    img2 = preprocessImg(img)
+    img3, labels, ret = getConnComps(img2)
+    return getSubImageByLabel(img2, labels, 1)
 
 # Uses the original image plus the result of connectedComponents
 def coloredConnComps(img, labels, ret):
@@ -101,17 +87,48 @@ def coloredConnComps(img, labels, ret):
     img4 = cv2.bitwise_or(img4, labeled_img)
     return img4
 
-def main():
-    img = loadImage('2017-01-20 - Lidl.png')
-    img2 = preprocessImg(img)
-    img3, labels, ret = getConnComps(img2)
+def compImgs(img1, img2):
+    sx, sy = max(img1.shape[0], img2.shape[0]), max(img1.shape[1], img2.shape[1])
+    img1 = invert(padImageTo(img1, (sx,sy)))
+    img2 = invert(padImageTo(img2, (sx,sy)))
+    
+    intersect = np.sum(cv2.bitwise_and(img1, img2))
+    union = np.sum(cv2.bitwise_or(img1, img2))
+    
+    return 1.0*intersect / union
 
-    # cv2.imshow('1stcomp', getSubImageByLabel(img2, labels, 1))
-    # cv2.imshow('hue', coloredConnComps(img2, labels, ret))
+def readStoreLogos():
+    pass
+
+def addToDict(D, logo):
+    showarray(logo)
+    name = raw_input("Enter the name of the Store: ")
+    D[name] = logo
+    writeImage("output/" + name + ".png", logo)
+    return name
+
+def detectStore(D, logoSubImg, threshold = 0.5):
+    for k,v in D.items():
+        print k, compImgs(logoSubImg, v)
+        if compImgs(logoSubImg, v) > threshold:
+            return k
+
+    return addToDict(D, logoSubImg)
+
+def main():
+    markTime()
+    img = loadImage('lidl/2017-01-20 - Lidl.png')
+    markTime()
+    img2 = preprocessImg(img)
+    markTime()
+    img3, labels, ret = getConnComps(img2)
+    markTime()
+
+    cv2.imwrite('output-1stcomp.png', getSubImageByLabel(img2, labels, 1))
+    cv2.imwrite('output-hue.png', coloredConnComps(img2, labels, ret))
 
     subImg = getSubImageByLabel(img2, labels, 2)
     print(pytesseract.image_to_string(padImage(subImg, 20)))
-
 
 def debug_alina():
     img = loadImage('2017-01-20 - Lidl.png')
@@ -120,3 +137,4 @@ def debug_alina():
 
 if __name__ == "__main__":
     debug_alina()
+    # main()

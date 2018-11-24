@@ -2,6 +2,7 @@ import PIL.Image
 import IPython.display
 
 import time
+import os
 from os.path import join
 
 import numpy as np
@@ -22,12 +23,16 @@ def getSubImageByLabel(img, labels, val):
 
 def padImageTo(img, newSize):
     dx = newSize[0]-img.shape[0]
-    px1 = int(dx/2)
-    px2 = dx-px1
+    px1 = px2 = py1 = py2 = 0
+
+    if dx > 0:
+        px1= int(dx/2)
+        px2 = dx-px1
     
     dy = newSize[1]-img.shape[1]
-    py1 = int(dy/2)
-    py2 = dy-py1
+    if dy > 0:
+        py1 = int(dy/2)
+        py2 = dy-py1
     
     return np.pad(img, ((px1, px2), (py1, py2)), 'constant', constant_values=255)
 
@@ -42,10 +47,20 @@ def loadImage(filename):
 def writeImage(filename, img):
     return cv2.imwrite(join(data_path, filename), img)
 
+def readStoreLogos():
+    D = {}
+    for f in os.listdir(join(data_path, "output")):
+        name = f.replace(".png", "")
+        D[name] = loadImage("output/" + f)
+    return D
+
 def displayImage(img, label='Img', debug=False):
     cv2.imshow(label, img)
     if not debug:
         cv2.waitKey(0)
+
+
+
 
 try:
     from cStringIO import StringIO

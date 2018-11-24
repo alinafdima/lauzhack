@@ -95,7 +95,16 @@ def coloredConnComps(img, labels, ret):
     return img4
 
 def compImgs(img1, img2):
+    sy, sx = max(img1.shape[0], img2.shape[0]), max(img1.shape[1], img2.shape[1])
+
+    y1,x1 = img1.shape[0], img1.shape[1]
+    img1 = cv2.resize(img1, (sy, int(1.0*x1*sy/y1)))
+
+    y2,x2 = img2.shape[0], img2.shape[1]
+    img2 = cv2.resize(img2, (sy, int(1.0*x2*sy/y2)))
+
     sx, sy = max(img1.shape[0], img2.shape[0]), max(img1.shape[1], img2.shape[1])
+
     img1 = invert(padImageTo(img1, (sx,sy)))
     img2 = invert(padImageTo(img2, (sx,sy)))
     
@@ -103,9 +112,6 @@ def compImgs(img1, img2):
     union = np.sum(cv2.bitwise_or(img1, img2))
     
     return 1.0*intersect / union
-
-def readStoreLogos():
-    pass
 
 def addToDict(D, logo):
     showarray(logo)

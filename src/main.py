@@ -140,7 +140,7 @@ def detectStore(D, logoSubImg, threshold = 0.55, verbose = False):
         if val > bestValue:
             bestStore = k
             bestValue = val
-            
+
     # return addToDict(D, logoSubImg)
     return bestStore
 
@@ -284,7 +284,6 @@ def main():
     # img_file = 'lidl/2017-01-20 - Lidl.png'
     if len(sys.argv) > 1:
         img_file = sys.argv[1]
-<<<<<<< HEAD
         parseReceipt(img_file, D, verbose = True, parseItems = False)
     else:
         for img_file in os.listdir(data_path):
@@ -293,10 +292,6 @@ def main():
 
             parseReceipt(img_file, D, verbose = True, parseItems = False)
             print '___________________________________________________________'
-=======
-    D = readStoreLogos()
-    parseReceipt(img_file, D, verbose = True, parseItems = True)
->>>>>>> Improved store detection, fixed bug with items
 
 
 

@@ -85,13 +85,14 @@ def levenshtein(seq1, seq2):
     return 1-(1.0*matrix[size_x - 1, size_y - 1]) / (size_x + size_y)
 
 def to_number(s, dft = float('nan')):
-    s = str(filter(lambda ch: ch in "0123456789+-.,", s))
+    s = s.encode('ascii', 'ignore').decode('ascii')
+    s = str(filter(lambda ch: ch in "0123456789+-.,", s)).replace(",", ".")
     if s:
         return float(s)
     return dft
 
 def is_number(s):
-    """ Returns True is string is a number. """
+    s = s.encode('ascii', 'ignore').decode('ascii')
     return str(filter(lambda ch: ch not in ".,-+ ", s)).isdigit()
 
 

@@ -129,9 +129,9 @@ def addToDict(D, logo):
 def detectStore(D, logoSubImg, threshold = 0.5):
     if logoSubImg.shape[0] > 200:
         return "<invalid>"
-    showarray(logoSubImg)
+    # showarray(logoSubImg)
     for k,v in D.items():
-        print k, compImgs(logoSubImg, v)
+        # print k, compImgs(logoSubImg, v)
         if compImgs(logoSubImg, v) > threshold:
             return k
 
@@ -238,11 +238,19 @@ def ex1():
 
 
 def main():
-    img_file = 'lidl/2017-01-20 - Lidl.png'
+    D = readStoreLogos()
+
+    # img_file = 'lidl/2017-01-20 - Lidl.png'
     if len(sys.argv) > 1:
         img_file = sys.argv[1]
-    D = readStoreLogos()
-    parseReceipt(img_file, D, verbose = True, parseItems = False)
+        parseReceipt(img_file, D, verbose = True, parseItems = False)
+    else:
+        for img_file in os.listdir(data_path):
+            if not os.path.isfile(os.path.join(data_path, img_file)):
+                continue
+
+            parseReceipt(img_file, D, verbose = True, parseItems = False)
+            print '___________________________________________________________'
 
 
 
@@ -262,6 +270,7 @@ def parseReceipt(img_file, D, verbose = False, parseItems = False):
 
     receipt.patches = compute_image_patches(receipt)
     stores.parse_date(receipt)
+    stores.parse_total(receipt)
 
     if parseItems:
         if receipt.store == "Lidl":
@@ -290,3 +299,5 @@ def parseReceipt(img_file, D, verbose = False, parseItems = False):
 
 if __name__ == "__main__":
     main()
+
+

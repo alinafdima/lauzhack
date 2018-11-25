@@ -83,6 +83,9 @@ def levenshtein(seq1, seq2):
                 matrix [x,y] = min(matrix[x-1,y] + 1, matrix[x-1,y-1] + 1, matrix[x,y-1] + 1 )
     return 1-(1.0*matrix[size_x - 1, size_y - 1]) / (size_x + size_y)
 
+def is_number(s):
+    """ Returns True is string is a number. """
+    return s.replace('.','',1).replace(",",'',1).strip().isdigit()
 
 
 try:

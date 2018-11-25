@@ -31,11 +31,17 @@ def fill_corners(img, padding=5l):
     tri_ll= np.tril(np.ones((padding, padding)))
     tri_ul= np.fliplr(np.tril(np.ones((padding, padding))).transpose())
     tri_lr= np.fliplr(np.tril(np.ones((padding, padding))))
+    square= np.ones((padding, padding))
 
+    midx, midy = (img.shape[0]-padding)/2, (img.shape[1]-padding)/2
     markers[:padding,:padding] = tri_ul
     markers[:padding,-padding:] = tri_ur
     markers[-padding:,:padding] = tri_ll
     markers[-padding:,-padding:] = tri_lr
+    markers[midx:midx+padding, 0:padding] = square
+    markers[midx:midx+padding, -padding:] = square
+    markers[0:padding, midy:midy+padding] = square
+    markers[-padding:, midy:midy+padding] = square
     markers = (1-img/255)*markers
 
     marked_labels = np.unique(labels*markers)
@@ -259,6 +265,12 @@ def test_all_lidl(D, parseItems = True):
     for img_file in L:
         parseReceipt(img_file, D, verbose = True, parseItems = parseItems)
 
+def test_item_parsing(D):
+    L = ["2017-01-20 - Lidl.png", "2017-05-11 - Primark.png", "2017-05-23 - Karstadt.png", \
+        "2017-06-13 - Lidl.png", "2017-07-11 - Karstadt.png", "2017-07-22 - Aldi.png"]
+
+    for img_file in L:
+        parseReceipt(img_file, D, verbose = True, parseItems = True)
 
 def ex1():
     markTime()
@@ -294,6 +306,9 @@ def main():
             print '___________________________________________________________'
 
 
+def showLogoImages(D, height = 50):
+    pass
+
 
 def parseReceipt(img_file, D, verbose = False, parseItems = False):
     if verbose:
@@ -319,7 +334,7 @@ def parseReceipt(img_file, D, verbose = False, parseItems = False):
     if parseItems:
         if receipt.store == "Lidl":
             stores.parseLidl(receipt)
-        elif receipt.store == "Karstadt":
+        elif receipt.store in ("Karstadt Feinkost", "Aldi Sued", "Primark"):
             stores.parseKarstadt(receipt)
 
 

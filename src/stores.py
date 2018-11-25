@@ -50,17 +50,13 @@ def parse_total(receipt):
             total_raw = m.group(3)
             total_raw = total_raw.replace(',', '.')
             receipt.total = float(total_raw)
-        else:
-            continue
-
-
 
 @parser
 def parseLidl(receipt):
-    img, F, labels, ret = receipt.img, receipt.patches, receipt.conn_comp_labels, receipt.conn_comp_num
+    F = receipt.patches
     
-    i = 2
-    while i < ret:
+    i = 1
+    while i < len(F):
         subImg, pos = F[i].img, F[i].bbox
         text = F[i].getText()
 
@@ -119,10 +115,10 @@ def parseLidl(receipt):
         # showarray(subImg)
         # print item
 
-        qty_str = ""
-        if "qty" in item:
-            qty_str = "%s x %s"%(item["qty"], item["unitprice"])
-        print "%50s %10s %s, VAT %s"%(item["title"], qty_str, item["price"], item["vat"])
+        # qty_str = ""
+        # if "qty" in item:
+        #     qty_str = "%s x %s"%(item["qty"], item["unitprice"])
+        # print "%50s %10s %s, VAT %s"%(item["title"], qty_str, item["price"], item["vat"])
 
         i+=1
         if levenshtein(item["title"], "zu zahlen") > 0.9:
@@ -135,5 +131,52 @@ def parseLidl(receipt):
 
 @parser
 def parseKarstadt(receipt):
-    img, F, labels, ret = receipt.img, receipt.patches, receipt.conn_comp_labels, receipt.conn_comp_num
-    pass
+    F = receipt.patches
+    i = 1
+
+    while i < len(F):
+        subImg, pos = F[i].img, F[i].bbox
+        text = F[i].getText()
+
+        if not text:
+            i += 1
+            continue
+
+        item = {}
+
+        subImgNext, posNext = F[i+1].img, F[i+1].bbox
+        if posNext[1] < pos[1]+10:
+            textNext = F[i+1].getText()
+            i += 1
+
+            item["title"] = text
+            item["price"] = textNext
+            item["vat"] = ""
+            if " " in textNext:
+                item["price"], item["vat"] = textNext.split(" ", 1)
+        else:
+            i += 1
+            continue
+
+            A = text.split(" ", 2)
+            item["title"] = A[0]
+            item["price"] = item["vat"] = ""
+            if len(A) > 1:
+                item["price"] = A[1]
+            if len(A) > 2:
+                item["vat"] = A[2]
+
+        print item
+
+        if item["price"] and not is_number(item["price"]):
+            break
+
+        i+=1
+        keywords = ["zu zahlen", "betrag", "gesamt", "summe", "total"]
+        score = max( levenshtein(item["title"].lower(), word) for word in keywords )
+        if score > 0.9:
+            # receipt.total = item["price"]
+            break
+        
+        receipt.items.append(item)
+

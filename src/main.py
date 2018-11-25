@@ -197,21 +197,6 @@ def hackyGetLogo(filename):
     logo, _ = getSubImageByLabel(img2, labels, 1)
     return logo
 
-def fullStack(receipt, D):
-    raw_img = loadImage(receipt.filename)
-    receipt.img = preprocessImg(raw_img)
-    receipt.img_text = imageToText(receipt.img)
-    compute_connected_components(receipt)
-
-    receipt.logo, _ = getSubImageByLabel(receipt.img, receipt.conn_comp_labels, 1)
-    receipt.store = detectStore(D, receipt.logo)
-
-    receipt.patches = compute_image_patches(receipt)
-    # if store == "Lidl":
-    #     stores.parseLidl(receipt)
-    # elif store == "Karstadt":
-    #     stores.parseKarstadt(receipt)
-
 
 def goThroughFilesToCheckLogo(D):
     for f in os.listdir(data_path):
@@ -250,30 +235,48 @@ def ex1():
     subImg,_ = getSubImageByLabel(img2, labels, 2)
     print(pytesseract.image_to_string(padImage(subImg, 20)))
 
-def main():
-    D = readStoreLogos()
-    receipt = Receipt(sys.argv[1])
-    fullStack(receipt, D)
 
-def main_alina():
+
+def main():
     img_file = 'lidl/2017-01-20 - Lidl.png'
     if len(sys.argv) > 1:
         img_file = sys.argv[1]
-
-
-    markTime()
-    receipt = Receipt(img_file)
     D = readStoreLogos()
-    fullStack(receipt, D)
-    stores.parse_date(receipt)
-    markTime()
+    parseReceipt(img_file, D)
 
-    print "\n--- Receipt ---"
-    print "Store:", receipt.store
-    print "Date: ", receipt.date
-    print "Paid: ", receipt.total
+
+
+def parseReceipt(img_file, D, verbose = False):
+    if verbose:
+        markTime()
+
+
+    receipt = Receipt(img_file)
+    raw_img = loadImage(receipt.filename)
+    receipt.img = preprocessImg(raw_img)
+    receipt.img_text = imageToText(receipt.img)
+    compute_connected_components(receipt)
+
+    receipt.logo, _ = getSubImageByLabel(receipt.img, receipt.conn_comp_labels, 1)
+    receipt.store = detectStore(D, receipt.logo)
+
+    receipt.patches = compute_image_patches(receipt)
+    if store == "Lidl":
+        stores.parseLidl(receipt)
+    elif store == "Karstadt":
+        stores.parseKarstadt(receipt)
+    stores.parse_date(receipt)
+
+
+    if verbose:
+        markTime()
+
+        print "\n--- Receipt ---"
+        print "Store:", receipt.store
+        print "Date: ", receipt.date
+        print "Paid: ", receipt.total
+
 
 
 if __name__ == "__main__":
-    main_alina()
-    # main()
+    main()

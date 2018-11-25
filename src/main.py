@@ -56,7 +56,7 @@ def fill_corners(img, padding=5l):
     return img_out
 
 
-def preprocessImg(img, type = 2):
+def preprocessImg(img, type = 2, return_intermediate=False):
     kernel  = np.ones((3,3),np.uint8)
     kernel[0,2] = kernel[2,2] = kernel[0,0] = kernel[2,0] = 0
     img2 = img.copy()
@@ -67,9 +67,12 @@ def preprocessImg(img, type = 2):
     elif type == 2:
         img2 = scipy.signal.medfilt(img2, 3)
 
-    img2 = fill_corners(img2)
+    img3 = fill_corners(img2)
     
-    return img2
+    if return_intermediate:
+        return (img2, img3)
+    else:
+        return img3
 
 
 def compute_connected_components(receipt, iterationsErode=50):
@@ -305,9 +308,6 @@ def main():
             parseReceipt(img_file, D, verbose = False, parseItems = False)
             print '___________________________________________________________'
 
-
-def showLogoImages(D, height = 50):
-    pass
 
 
 def parseReceipt(img_file, D, verbose = False, parseItems = False):

@@ -85,6 +85,7 @@ def parseLidl(receipt):
                 i+= 1
 
                 item["qty"] = F[i+1].getText()
+                item["qty"] = ''.join(c for c in item["qty"] if c.isdigit())
                 item["unitprice"] = F[i+2].getText()
             else:
                 item["qty"] = F[i+1].getText()

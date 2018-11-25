@@ -242,11 +242,11 @@ def main():
     if len(sys.argv) > 1:
         img_file = sys.argv[1]
     D = readStoreLogos()
-    parseReceipt(img_file, D)
+    parseReceipt(img_file, D, verbose = True, parseItems = False)
 
 
 
-def parseReceipt(img_file, D, verbose = False):
+def parseReceipt(img_file, D, verbose = False, parseItems = False):
     if verbose:
         markTime()
 
@@ -261,11 +261,13 @@ def parseReceipt(img_file, D, verbose = False):
     receipt.store = detectStore(D, receipt.logo)
 
     receipt.patches = compute_image_patches(receipt)
-    if store == "Lidl":
-        stores.parseLidl(receipt)
-    elif store == "Karstadt":
-        stores.parseKarstadt(receipt)
     stores.parse_date(receipt)
+
+    if parseItems:
+        if receipt.store == "Lidl":
+            stores.parseLidl(receipt)
+        elif receipt.store == "Karstadt":
+            stores.parseKarstadt(receipt)
 
 
     if verbose:
@@ -275,6 +277,14 @@ def parseReceipt(img_file, D, verbose = False):
         print "Store:", receipt.store
         print "Date: ", receipt.date
         print "Paid: ", receipt.total
+
+        if parseItems:
+            print "\nItems:"
+            for item in receipt.items:
+                qty_str = ""
+                if "qty" in item:
+                    qty_str = "%s x %s"%(item["qty"], item["unitprice"])
+                print "%50s %10s %s, VAT %s"%(item["title"], qty_str, item["price"], item["vat"])
 
 
 

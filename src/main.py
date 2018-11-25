@@ -290,7 +290,7 @@ def main():
             if not os.path.isfile(os.path.join(data_path, img_file)):
                 continue
 
-            parseReceipt(img_file, D, verbose = True, parseItems = False)
+            parseReceipt(img_file, D, verbose = False, parseItems = False)
             print '___________________________________________________________'
 
 

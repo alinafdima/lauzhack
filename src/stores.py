@@ -35,30 +35,23 @@ def parse_date(receipt):
 
 
 def parse_total(receipt):
-    cv2.imwrite('test.png', receipt.img)
-
     regex_pattern = re.compile('(zuzahlen|betrag|gesamt|summe):?(eur)?([0-9]+[\\.,][0-9]+)')
-    m = regex_pattern.search(receipt.img_text.lower().replace(' ', ''))
+    processed_text = receipt.img_text.lower().replace(' ', '')
+    m = regex_pattern.search(processed_text)
     if m:
         total_raw = m.group(3)
         total_raw = total_raw.replace(',', '.')
         receipt.total = float(total_raw)
     else:
         regex_pattern2 = re.compile('(total):?(eur)?([0-9]+[\\.,][0-9]+)')
-        m = regex_pattern2.search(receipt.img_text.lower().replace(' ', ''))
+        m = regex_pattern2.search(processed_text)
 
         if m:
             total_raw = m.group(3)
             total_raw = total_raw.replace(',', '.')
             receipt.total = float(total_raw)
         else:
-            print 'No match'
-            # displayImage(receipt.img)
-            # print receipt.img_text
-            
-    ipdb.set_trace()
-
-
+            continue
 
 
 

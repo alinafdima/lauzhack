@@ -359,6 +359,8 @@ def parseReceipt(img_file, D, verbose = False, parseItems = False):
             stores.parseLidl(receipt)
         elif receipt.store in ("Karstadt Feinkost", "Aldi Sued", "Primark"):
             stores.parseKarstadt(receipt)
+        else:
+            stores.parseKarstadt(receipt)
 
 
     if verbose:

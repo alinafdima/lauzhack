@@ -60,7 +60,7 @@ def displayImage(img, label='Img', debug=False):
     if not debug:
         cv2.waitKey(0)
 
-def imageToText(subImg, padding = 30):
+def imageToText(subImg, padding = 50):
     return pytesseract.image_to_string(padImage(subImg, padding))
 
 

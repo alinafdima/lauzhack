@@ -86,8 +86,8 @@ def parseLidl(receipt):
 
         subImgNext, posNext = F[i+1].img, F[i+1].bbox
         if posNext[1] < pos[1]+10:
-            i += 1
             textNext = F[i+1].getText()
+            i += 1
 
             item["title"] = text
             item["price"] = textNext
@@ -107,21 +107,29 @@ def parseLidl(receipt):
         subImg4, pos4 = F[i+2].img, F[i+2].bbox
 
         if pos3[0] > pos[0] + 20:
+            text3 = F[i+1].getText()
+            text4 = F[i+2].getText()
             i += 1
+
             if pos4[1] < pos3[1]+10:
                 i+= 1
 
-                item["qty"] = F[i+1].getText()
-                item["qty"] = ''.join(c for c in item["qty"] if c.isdigit())
-                item["unitprice"] = F[i+2].getText()
+                item["qty"] = text3
+                item["unitprice"] = text4
             else:
-                item["qty"] = F[i+1].getText()
+                item["qty"] = text3
                 item["unitprice"] = ""
                 if " " in item["qty"]:
                     item["qty"], item["unitprice"] = item["qty"].split(" ", 1)
+            item["qty"] = ''.join(c for c in item["qty"] if c.isdigit())
 
         # showarray(subImg)
         # print item
+
+        qty_str = ""
+        if "qty" in item:
+            qty_str = "%s x %s"%(item["qty"], item["unitprice"])
+        print "%50s %10s %s, VAT %s"%(item["title"], qty_str, item["price"], item["vat"])
 
         i+=1
         if levenshtein(item["title"], "zu zahlen") > 0.9:

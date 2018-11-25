@@ -100,16 +100,10 @@ def coloredConnComps(img, labels, ret):
 def compImgs(img1, img2):
     sy, sx = max(img1.shape[0], img2.shape[0]), max(img1.shape[1], img2.shape[1])
 
-    y1,x1 = img1.shape[0], img1.shape[1]
-    img1 = cv2.resize(img1, (sy, int(1.0*x1*sy/y1)))
+    img2 = stripImgWhite(img2)
 
-    y2,x2 = img2.shape[0], img2.shape[1]
-    img2 = cv2.resize(img2, (sy, int(1.0*x2*sy/y2)))
-
-    sx, sy = max(img1.shape[0], img2.shape[0]), max(img1.shape[1], img2.shape[1])
-
-    img1 = invert(padImageTo(img1, (sx,sy)))
-    img2 = invert(padImageTo(img2, (sx,sy)))
+    img1 = invert(cv2.resize(img1, (sx, sy)))
+    img2 = invert(cv2.resize(img2, (sx, sy)))
     
     intersect = np.sum(cv2.bitwise_and(img1, img2))
     union = np.sum(cv2.bitwise_or(img1, img2))
@@ -119,24 +113,36 @@ def compImgs(img1, img2):
 
 # --- Stores ---
 
-def addToDict(D, logo):
+def addToDict(D, logo, name = ""):
     showarray(logo)
-    name = raw_input("Enter the name of the Store: ")
+    if not name:
+        name = raw_input("Enter the name of the Store: ")
+    else:
+        print(name)
     D[name] = logo
     writeImage("output/" + name + ".png", logo)
     return name
 
-def detectStore(D, logoSubImg, threshold = 0.5):
+def detectStore(D, logoSubImg, threshold = 0.55, verbose = False):
     if logoSubImg.shape[0] > 200:
         return "<invalid>"
-    # showarray(logoSubImg)
-    for k,v in D.items():
-        # print k, compImgs(logoSubImg, v)
-        if compImgs(logoSubImg, v) > threshold:
-            return k
 
+    if verbose:
+        showarray(logoSubImg)
+        print "Comparison Scores"
+
+    bestStore = "<unknown>"
+    bestValue = threshold
+    for k,img in D.items():
+        val = compImgs(logoSubImg, img)
+        if verbose:
+            print "%20s %.6f"%(k, val)
+        if val > bestValue:
+            bestStore = k
+            bestValue = val
+            
     # return addToDict(D, logoSubImg)
-    return "<unknown>"
+    return bestStore
 
 class ImagePatch:
     def __init__(self):
@@ -149,6 +155,19 @@ class ImagePatch:
             self.text = imageToText(self.img)
         return self.text
 
+
+def stripImgWhite(img):
+    for i in xrange(img.shape[1]):
+        if sum(255-img[:, i])/255.0 > 1:
+            x1 = i+1
+            break
+
+    x2 = img.shape[1]
+    for i in xrange(img.shape[1]-1, x1, -1):
+        if sum(255-img[:, i])/255.0 > 1:
+            x2 = i
+            break
+    return img[:, x1:x2]
 
 def stripWhiteColumns(patch):
     x,y,w,h = patch.bbox
@@ -190,33 +209,55 @@ def compute_image_patches(receipt, threshLines = 10):
 
     return L
 
-def hackyGetLogo(filename):
-    img = loadImage(filename)
-    img2 = preprocessImg(img)
-    img3, labels, ret = getConnComps(img2)
-    logo, _ = getSubImageByLabel(img2, labels, 1)
-    return logo
 
+
+def addAllLogos(D):
+    D = readStoreLogos()
+    L = {("2017-01-20 - Lidl.png", "Lidl"), \
+         ("2017-05-11 - Primark.png", "Primark"), \
+         ("2017-05-23 - Karstadt b.png", "Karstadt"), \
+         ("2017-07-11 - Karstadt.png", "Karstadt Feinkost"), \
+         ("2017-07-11 - Oishii.png", "Oishii"), \
+         ("2017-07-13 - dm.png", "dm"), \
+         ("2017-07-22 - Aldi.png", "Aldi Sued"), \
+         ("2017-09-09 - TKMaxx.png", "TKMaxx"), \
+         ("2017-09-16 - Galeria Kaufhof.png", "Galeria Kaufhof"), \
+         ("2017-09-22 - Rewe.png", "Rewe"), \
+         ("2017-10-01 - Rossman.png", "Rossman"), \
+         ("2017-10-21 - Gamestop.png", "Gamestop US") }
+         # "2017-09-02 - C&A.png": "CandA", \
+
+    for img_file, name in L:
+        print img_file,
+        receipt = parseReceipt(img_file, D, verbose = False)
+        print receipt.store
+        if receipt.store =="<unknown>":
+            addToDict(D, receipt.logo, name)
 
 def goThroughFilesToCheckLogo(D):
     for f in os.listdir(data_path):
         if not os.path.isfile(os.path.join(data_path, f)):
             continue
-        logo = hackyGetLogo(f)
-        print ""
-        print f
-        print imageToText(logo)
-        print detectStore(D, logo)
+        parseReceipt(f, D, verbose = True)
 
 def test1():
-    print detectStore(D, hackyGetLogo("lidl/2017-01-20 - Lidl.png"))
-    print detectStore(D, hackyGetLogo("2017-06-13 - Lidl.png"))
-    print detectStore(D, hackyGetLogo("2017-06-17 - Lidl.png"))
-    print detectStore(D, hackyGetLogo("2017-05-23 - Karstadt b.png"))
-    print detectStore(D, hackyGetLogo("2017-05-23 - Karstadt c.png"))
-    print detectStore(D, hackyGetLogo("2017-06-24 - Karstadt - Pants.png"))
+    print detectStore(D, hackyGetLogo("lidl/2017-01-20 - Lidl.png"), verbose = True)
+    print detectStore(D, hackyGetLogo("2017-06-13 - Lidl.png"), verbose = True)
+    print detectStore(D, hackyGetLogo("2017-06-17 - Lidl.png"), verbose = True)
+    print detectStore(D, hackyGetLogo("2017-05-23 - Karstadt b.png"), verbose = True)
+    print detectStore(D, hackyGetLogo("2017-05-23 - Karstadt c.png"), verbose = True)
+    print detectStore(D, hackyGetLogo("2017-06-24 - Karstadt - Pants.png"), verbose = True)
 
+def test_all_lidl(D, parseItems = True):
+    L = ["2017-01-20 - Lidl.png", "2017-05-16 - Lidl.png", "2017-06-13 - Lidl.png", \
+        "2017-06-17 - Lidl.png", "2017-07-01 - Lidl.png", "2017-07-22 - Lidl.png", \
+        "2017-08-26 - Lidl.png", "2017-09-16 - Lidl.png", "2017-12-04 - Lidl.png", \
+        "2017-12-16 - Lidl.png", "2018-01-06 - Lidl.png", "2018-02-24 - Lidl.png", \
+        "2018-03-03 - Lidl.png", "2018-03-10 - Lidl.png", "2018-05-05 - Lidl.png", \
+        "2018-05-19 - Lidl.png", "2018-06-02 - Lidl.png"]
 
+    for img_file in L:
+        parseReceipt(img_file, D, verbose = True, parseItems = parseItems)
 
 
 def ex1():
@@ -243,6 +284,7 @@ def main():
     # img_file = 'lidl/2017-01-20 - Lidl.png'
     if len(sys.argv) > 1:
         img_file = sys.argv[1]
+<<<<<<< HEAD
         parseReceipt(img_file, D, verbose = True, parseItems = False)
     else:
         for img_file in os.listdir(data_path):
@@ -251,6 +293,10 @@ def main():
 
             parseReceipt(img_file, D, verbose = True, parseItems = False)
             print '___________________________________________________________'
+=======
+    D = readStoreLogos()
+    parseReceipt(img_file, D, verbose = True, parseItems = True)
+>>>>>>> Improved store detection, fixed bug with items
 
 
 
@@ -264,11 +310,14 @@ def parseReceipt(img_file, D, verbose = False, parseItems = False):
     receipt.img = preprocessImg(raw_img)
     receipt.img_text = imageToText(receipt.img)
     compute_connected_components(receipt)
-
-    receipt.logo, _ = getSubImageByLabel(receipt.img, receipt.conn_comp_labels, 1)
-    receipt.store = detectStore(D, receipt.logo)
-
     receipt.patches = compute_image_patches(receipt)
+
+    # displayImage(receipt.img)
+
+    # receipt.logo, _ = getSubImageByLabel(receipt.img, receipt.conn_comp_labels, 1)
+    receipt.logo = receipt.patches[0].img
+    receipt.store = detectStore(D, receipt.logo, verbose = verbose)
+
     stores.parse_date(receipt)
     stores.parse_total(receipt)
 
@@ -294,7 +343,7 @@ def parseReceipt(img_file, D, verbose = False, parseItems = False):
                 if "qty" in item:
                     qty_str = "%s x %s"%(item["qty"], item["unitprice"])
                 print "%50s %10s %s, VAT %s"%(item["title"], qty_str, item["price"], item["vat"])
-
+    return receipt
 
 
 if __name__ == "__main__":

@@ -2,6 +2,7 @@ import PIL.Image
 import IPython.display
 
 import time
+import re
 import os
 from os.path import join
 
@@ -83,9 +84,15 @@ def levenshtein(seq1, seq2):
                 matrix [x,y] = min(matrix[x-1,y] + 1, matrix[x-1,y-1] + 1, matrix[x,y-1] + 1 )
     return 1-(1.0*matrix[size_x - 1, size_y - 1]) / (size_x + size_y)
 
+def to_number(s, dft = float('nan')):
+    s = str(filter(lambda ch: ch in "0123456789+-.,", s))
+    if s:
+        return float(s)
+    return dft
+
 def is_number(s):
     """ Returns True is string is a number. """
-    return s.replace('.','',1).replace(",",'',1).strip().isdigit()
+    return str(filter(lambda ch: ch not in ".,-+ ", s)).isdigit()
 
 
 try:

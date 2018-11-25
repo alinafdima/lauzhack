@@ -35,7 +35,7 @@ def parse_date(receipt):
 
 
 def parse_total(receipt):
-    regex_pattern = re.compile('(zuzahlen|betrag|gesamt|summe):?(eur)?([0-9]+[\\.,][0-9]+)')
+    regex_pattern = re.compile('^(zuzahlen|betrag|gesamt|summe):?(eur)?([0-9]+[\\.,][0-9]+)')
     processed_text = receipt.img_text.lower().replace(' ', '')
     m = regex_pattern.search(processed_text)
     if m:
@@ -43,7 +43,7 @@ def parse_total(receipt):
         total_raw = total_raw.replace(',', '.')
         receipt.total = float(total_raw)
     else:
-        regex_pattern2 = re.compile('(total):?(eur)?([0-9]+[\\.,][0-9]+)')
+        regex_pattern2 = re.compile('^(total):?(eur)?([0-9]+[\\.,][0-9]+)')
         m = regex_pattern2.search(processed_text)
 
         if m:
@@ -134,6 +134,7 @@ def parseKarstadt(receipt):
     F = receipt.patches
     i = 1
 
+    runningTotal = 0
     while i < len(F):
         subImg, pos = F[i].img, F[i].bbox
         text = F[i].getText()
@@ -166,17 +167,26 @@ def parseKarstadt(receipt):
             if len(A) > 2:
                 item["vat"] = A[2]
 
-        print item
+        # print item
 
         if item["price"] and not is_number(item["price"]):
             break
 
+        if item["price"]:
+            runningTotal += to_number(item["price"], dft = 0)
+
         i+=1
-        keywords = ["zu zahlen", "betrag", "gesamt", "summe", "total"]
+        keywords = ["zu zahlen", "betrag", "gesamt", "summe", "total", "eur"]
         score = max( levenshtein(item["title"].lower(), word) for word in keywords )
         if score > 0.9:
-            # receipt.total = item["price"]
+            total = item["price"] + item["vat"]
+            total = to_number(total, dft = 0)
+            if total > 0:
+                receipt.total = total
+
             break
         
         receipt.items.append(item)
 
+    if not receipt.total and runningTotal > 0:
+        receipt.total = str(runningTotal)

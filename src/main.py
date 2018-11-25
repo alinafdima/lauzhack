@@ -46,8 +46,6 @@ def fill_corners(img, padding=5l):
 
     marked_labels = np.unique(labels*markers)
 
-    # displayImage(coloredConnComps(img, labels, ret))
-
     img_out = np.copy(img)
     for label in marked_labels:
         if label != 0:
@@ -105,6 +103,35 @@ def coloredConnComps(img, labels, ret):
     img4 = cv2.cvtColor(np.uint8(img), cv2.COLOR_GRAY2BGR)
     img4 = cv2.bitwise_or(img4, labeled_img)
     return img4
+
+def showImageWithBoundingBoxes(receipt, thickness = 4):
+    img = receipt.img.copy()
+    img = cv2.cvtColor(np.uint8(img), cv2.COLOR_GRAY2BGR)
+
+    Rects = [0]*len(receipt.patches)
+
+    for i, patch in enumerate(receipt.patches):
+        bb = patch.bbox
+        pt1 = (bb[0], bb[1])
+        pt2 = (bb[0]+bb[2], bb[1]+bb[3])
+
+        onesRect = np.ones((bb[3], bb[2]), np.uint8)
+        hue = 170*(i+1) / len(receipt.patches)
+
+        colorMask = cv2.cvtColor(cv2.merge([hue*onesRect, 255*onesRect, 255*onesRect]), cv2.COLOR_HSV2BGR)
+        img[pt1[1]:pt2[1], pt1[0]:pt2[0]] = cv2.bitwise_or(img[pt1[1]:pt2[1], pt1[0]:pt2[0]], colorMask)
+
+
+        pt1p = (pt1[0]-thickness, pt1[1]-thickness)
+        pt2p = (pt2[0]+thickness, pt2[1]+thickness)
+
+        Rects[i] = (pt1p, pt2p, np.array([tuple(colorMask[0][0])]))
+
+    for pt1p, pt2p, color in Rects:
+        cv2.rectangle(img, pt1p, pt2p, 120, thickness = thickness)
+
+    return img
+
 
 def compImgs(img1, img2):
     sy, sx = max(img1.shape[0], img2.shape[0]), max(img1.shape[1], img2.shape[1])
@@ -257,23 +284,20 @@ def test1():
     print detectStore(D, hackyGetLogo("2017-05-23 - Karstadt c.png"), verbose = True)
     print detectStore(D, hackyGetLogo("2017-06-24 - Karstadt - Pants.png"), verbose = True)
 
-def test_all_lidl(D, parseItems = True):
-    L = ["2017-01-20 - Lidl.png", "2017-05-16 - Lidl.png", "2017-06-13 - Lidl.png", \
-        "2017-06-17 - Lidl.png", "2017-07-01 - Lidl.png", "2017-07-22 - Lidl.png", \
-        "2017-08-26 - Lidl.png", "2017-09-16 - Lidl.png", "2017-12-04 - Lidl.png", \
-        "2017-12-16 - Lidl.png", "2018-01-06 - Lidl.png", "2018-02-24 - Lidl.png", \
-        "2018-03-03 - Lidl.png", "2018-03-10 - Lidl.png", "2018-05-05 - Lidl.png", \
-        "2018-05-19 - Lidl.png", "2018-06-02 - Lidl.png"]
+LIDL_LIST = ["2017-01-20 - Lidl.png", "2017-05-16 - Lidl.png", "2017-06-13 - Lidl.png", \
+            "2017-06-17 - Lidl.png", "2017-07-01 - Lidl.png", "2017-07-22 - Lidl.png", \
+            "2017-08-26 - Lidl.png", "2017-09-16 - Lidl.png", "2017-12-04 - Lidl.png", \
+            "2017-12-16 - Lidl.png", "2018-01-06 - Lidl.png", "2018-02-24 - Lidl.png", \
+            "2018-03-03 - Lidl.png", "2018-03-10 - Lidl.png", "2018-05-05 - Lidl.png", \
 
+            "2018-05-19 - Lidl.png", "2018-06-02 - Lidl.png"]
+
+MIXED_LIST = ["2017-01-20 - Lidl.png", "2017-05-11 - Primark.png", "2017-05-23 - Karstadt.png", \
+            "2017-06-13 - Lidl.png", "2017-07-11 - Karstadt.png", "2017-07-22 - Aldi.png"]
+
+def test_all_items(D, L, parseItems = True):
     for img_file in L:
         parseReceipt(img_file, D, verbose = True, parseItems = parseItems)
-
-def test_item_parsing(D):
-    L = ["2017-01-20 - Lidl.png", "2017-05-11 - Primark.png", "2017-05-23 - Karstadt.png", \
-        "2017-06-13 - Lidl.png", "2017-07-11 - Karstadt.png", "2017-07-22 - Aldi.png"]
-
-    for img_file in L:
-        parseReceipt(img_file, D, verbose = True, parseItems = True)
 
 def ex1():
     markTime()
@@ -313,7 +337,6 @@ def main():
 def parseReceipt(img_file, D, verbose = False, parseItems = False):
     if verbose:
         markTime()
-
 
     receipt = Receipt(img_file)
     raw_img = loadImage(receipt.filename)
